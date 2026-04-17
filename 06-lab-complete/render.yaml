@@ -1,23 +1,56 @@
 services:
+  # 🔥 Fire Detection Web Service
   - type: web
-    name: ai-agent-production
+    name: fire-detection-prod
     runtime: docker
     region: singapore
     plan: starter
     healthCheckPath: /health
     autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    
     envVars:
+      # App Configuration
       - key: ENVIRONMENT
         value: production
+      - key: APP_NAME
+        value: Fire Detection LLM Agent
       - key: APP_VERSION
         value: "1.0.0"
-      - key: OPENAI_API_KEY
-        sync: false
+      - key: DEBUG
+        value: "false"
+      
+      # Security (MUST be set in Render Dashboard)
       - key: AGENT_API_KEY
         generateValue: true
       - key: JWT_SECRET
         generateValue: true
-      - key: DAILY_BUDGET_USD
-        value: "5.0"
+      
+      # LLM (MUST be set in Render Dashboard)
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: gpt-4-vision
+      - key: LLM_MAX_TOKENS
+        value: "200"
+      
+      # Fire Detection
+      - key: YOLO_MODEL_NAME
+        value: yolov8m.pt
+      - key: YOLO_CONFIDENCE_THRESHOLD
+        value: "0.5"
+      
+      # Rate Limiting & Budget
       - key: RATE_LIMIT_PER_MINUTE
-        value: "20"
+        value: "30"
+      - key: MONTHLY_BUDGET_USD
+        value: "50.0"
+      - key: ALERT_BUDGET_PERCENT
+        value: "0.8"
+
+  # 📦 Redis Service for caching & rate limiting
+  - type: redis
+    name: fire-redis
+    region: singapore
+    plan: starter
+    ipAllowList: []  # Allow all IPs

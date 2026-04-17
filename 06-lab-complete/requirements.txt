@@ -1,7 +1,33 @@
+# Web Framework
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
 pydantic==2.9.0
-pyjwt==2.9.0
+pydantic-settings==2.5.0
+
+# Computer Vision & Fire Detection
+ultralytics>=8.3.0
+opencv-python>=4.9.0.80
+torch>=2.5.0
+torchvision>=0.20.0
+Pillow>=11.0.0
+numpy>=2.2.0
+
+# LLM & AI
+openai==1.52.0
+
+# Authentication & Security
+PyJWT==2.10.0
+
+# HTTP & API Clients
+requests==2.32.3
+python-multipart==0.0.9
+
+# Configuration
 python-dotenv==1.0.1
+
+# Redis (for distributed caching & rate limiting)
 redis==5.1.0
-psutil==6.0.0
+
+# Monitoring & Logging
+structlog==24.4.0
+psutil==6.1.0
