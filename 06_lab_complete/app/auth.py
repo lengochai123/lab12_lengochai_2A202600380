@@ -1,6 +1,7 @@
 """Authentication and Authorization"""
 import logging
-from fastapi import HTTPException, Security
+from fastapi import HTTPException, Security, Request
+from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 from functools import lru_cache
 import hashlib
@@ -20,25 +21,29 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 async def verify_api_key(api_key: Optional[str] = Security(api_key_header), configured_key: str = None) -> bool:
     """
     Verify API key from header
-    
-    Args:
-        api_key: API key from header
-        configured_key: Configured API key
-        
+
     Returns:
         True if valid
-        
+
     Raises:
-        HTTPException if invalid
+        HTTPException 401 if missing or invalid
     """
     if not api_key:
-        raise HTTPException(status_code=403, detail="❌ Missing API Key")
-    
+        raise HTTPException(
+            status_code=401,
+            detail="Missing API Key — include header X-API-Key",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
     if api_key != configured_key:
-        logger.warning(f"Invalid API key attempt")
-        raise HTTPException(status_code=403, detail="❌ Invalid API Key")
-    
-    logger.debug("✅ API Key verified")
+        logger.warning("Invalid API key attempt")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API Key",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
+    logger.debug("API Key verified")
     return True
 
 
