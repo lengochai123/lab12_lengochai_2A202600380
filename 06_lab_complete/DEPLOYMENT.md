@@ -1,7 +1,7 @@
 # Deployment Information
 
 ## Public URL
-https://your-agent.railway.app  <!-- Cập nhật URL này sau khi deploy thành công -->
+https://lab12-lengochai-2a202600380-ie87.onrender.com  <!-- Cập nhật URL này sau khi deploy thành công -->
 
 ## Platform
 Railway / Render / Cloud Run  <!-- Giữ lại platform bạn sử dụng -->
@@ -10,13 +10,13 @@ Railway / Render / Cloud Run  <!-- Giữ lại platform bạn sử dụng -->
 
 ### Health Check
 ```bash
-curl https://your-agent.railway.app/health
+curl https://lab12-lengochai-2a202600380-ie87.onrender.com/health
 # Expected: {"status": "ok", ...}
 ```
 
 ### API Test (with authentication)
 ```bash
-curl -X POST https://your-agent.railway.app/analyze \
+curl -X POST https://lab12-lengochai-2a202600380-ie87.onrender.com/analyze \
   -H "X-API-Key: YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"user_id": "test", "image_base64": "<base64_string>"}'

@@ -962,9 +962,9 @@ curl -X POST https://your-agent.railway.app/ask \
 - LOG_LEVEL
 
 ## Screenshots
-- [Deployment dashboard](screenshots/dashboard.png)
-- [Service running](screenshots/running.png)
-- [Test results](screenshots/test.png)
+- [Deployment dashboard](Deployment Dashboard.png)
+- [Service running](Service running logs.png)
+- [Test results](Test results.png)
 ```
 
 ##  Pre-Submission Checklist
