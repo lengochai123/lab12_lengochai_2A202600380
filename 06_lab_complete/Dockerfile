@@ -8,14 +8,11 @@ FROM python:3.13-slim AS builder
 
 WORKDIR /build
 
-# Install build dependencies for OpenCV, YOLO, and other packages
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     g++ \
-    libpq-dev \
-    libopencv-dev \
-    python3-opencv \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -30,14 +27,8 @@ RUN groupadd -r agent && useradd -r -g agent -d /app agent
 
 WORKDIR /app
 
-# Install runtime dependencies (OpenCV)
+# Install runtime dependencies (curl for healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libopencv-core4.5d \
-    libopencv-imgproc4.5d \
-    libopencv-highgui4.5d \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
