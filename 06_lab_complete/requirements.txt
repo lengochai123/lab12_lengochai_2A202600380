@@ -1,3 +1,5 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 # Web Framework
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
@@ -6,7 +8,7 @@ pydantic-settings==2.5.0
 
 # Computer Vision & Fire Detection
 ultralytics>=8.3.0
-opencv-python>=4.9.0.80
+opencv-python-headless>=4.9.0.80
 torch>=2.5.0
 torchvision>=0.20.0
 Pillow>=11.0.0

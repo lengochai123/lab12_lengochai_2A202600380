@@ -43,12 +43,12 @@ class Settings:
 
     # ──── Rate Limiting ────
     rate_limit_per_minute: int = field(
-        default_factory=lambda: int(os.getenv("RATE_LIMIT_PER_MINUTE", "30"))
+        default_factory=lambda: int(os.getenv("RATE_LIMIT_PER_MINUTE", "10"))
     )
 
     # ──── Cost Guard (LLM Budget) ────
     monthly_budget_usd: float = field(
-        default_factory=lambda: float(os.getenv("MONTHLY_BUDGET_USD", "50.0"))
+        default_factory=lambda: float(os.getenv("MONTHLY_BUDGET_USD", "10.0"))
     )
     alert_budget_percent: float = field(
         default_factory=lambda: float(os.getenv("ALERT_BUDGET_PERCENT", "0.8"))
