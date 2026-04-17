@@ -222,6 +222,18 @@ class BudgetInfo(BaseModel):
     percent_used: float
     reset_date: str
 
+class AskRequest(BaseModel):
+    """Text Q&A request — used by the /ask endpoint"""
+    user_id: str = Field(default="default", description="User identifier")
+    question: str = Field(..., description="Question to ask the AI agent")
+
+class AskResponse(BaseModel):
+    """Text Q&A response"""
+    answer: str
+    user_id: str
+    cost_info: dict
+    timestamp: str
+
 # ─────────────────────────────────────────────────────────
 # Endpoints → Info
 # ─────────────────────────────────────────────────────────
@@ -234,13 +246,83 @@ def root():
         "version": settings.app_version,
         "environment": settings.environment,
         "endpoints": {
-            "analyze": "POST /analyze (requires X-API-Key, sends base64 image)",
+            "ask": "POST /ask (requires X-API-Key, text Q&A)",
+            "analyze": "POST /analyze (requires X-API-Key, base64 image)",
             "health": "GET /health (no auth)",
             "ready": "GET /ready (no auth)",
             "budget": "GET /budget (requires X-API-Key)",
             "metrics": "GET /metrics (requires X-API-Key)",
         },
     }
+
+# ─────────────────────────────────────────────────────────
+# Endpoints → Ask (Text Q&A)
+# ─────────────────────────────────────────────────────────
+
+@app.post("/ask", response_model=AskResponse, tags=["Agent"])
+async def ask(
+    body: AskRequest,
+    api_key: str = Depends(verify_api_key),
+):
+    """
+    Ask the AI agent a text question.
+
+    **Authentication:** Include header `X-API-Key: <your-key>`
+
+    **Request body:**
+    - user_id: Optional user identifier
+    - question: The question to ask
+
+    **Returns:**
+    - answer: AI-generated answer
+    - cost_info: Cost tracking information
+    """
+    try:
+        if not llm_analyzer:
+            raise HTTPException(500, "LLM service not ready. Try again.")
+
+        logger.info(json.dumps({"event": "ask", "user_id": body.user_id, "q_len": len(body.question)}))
+
+        # Use LLM to answer — fall back to mock if no API key
+        if settings.openai_api_key:
+            from openai import OpenAI
+            client = OpenAI(api_key=settings.openai_api_key)
+            completion = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful fire-safety AI assistant."},
+                    {"role": "user", "content": body.question},
+                ],
+                max_tokens=settings.llm_max_tokens,
+            )
+            answer = completion.choices[0].message.content.strip()
+            in_tok = completion.usage.prompt_tokens
+            out_tok = completion.usage.completion_tokens
+        else:
+            # Mock response (no API key set)
+            answer = f"[Mock] Received question: '{body.question}'. Set OPENAI_API_KEY for real answers."
+            in_tok, out_tok = 10, 20
+
+        # Cost tracking
+        cost_info = cost_guard.record_usage(
+            model="gpt-3.5-turbo",
+            input_tokens=in_tok,
+            output_tokens=out_tok,
+            user_id=body.user_id,
+        ) if cost_guard else {"status": "cost_guard_disabled"}
+
+        return AskResponse(
+            answer=answer,
+            user_id=body.user_id,
+            cost_info=cost_info,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in /ask: {e}", exc_info=True)
+        raise HTTPException(500, f"Ask failed: {str(e)}")
 
 # ─────────────────────────────────────────────────────────
 # Endpoints → Fire Detection
