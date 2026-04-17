@@ -18,7 +18,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Install to a clean prefix so we can copy the whole tree to runtime
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+# Force reinstall headless AFTER all deps (ultralytics pulls opencv-python full)
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt \
+    && pip install --no-cache-dir --prefix=/install --force-reinstall opencv-python-headless>=4.9.0.80
 
 
 # Stage 2: Runtime — lean image
@@ -29,9 +31,11 @@ RUN groupadd -r agent && useradd -r -g agent -d /app -s /sbin/nologin agent
 
 WORKDIR /app
 
-# curl is needed for the HEALTHCHECK command
+# curl: healthcheck | libxcb1 + libglib2.0-0: safety net for cv2 shared libs
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libxcb1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder into the system Python path
