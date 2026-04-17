@@ -144,10 +144,10 @@ async def request_middleware(request: Request, call_next):
     _request_count += 1
     
     try:
-        # Check rate limit if authenticated
+        # Check rate limit only on requests that carry an API key
         api_key = request.headers.get("X-API-Key")
-        if api_key and rate_limiter:
-            if not rate_limiter.is_allowed(api_key[:8]):  # Use first 8 chars as key
+        if api_key and api_key == settings.agent_api_key and rate_limiter:
+            if not rate_limiter.is_allowed(api_key[:8]):
                 raise HTTPException(
                     status_code=429,
                     detail=f"Rate limit exceeded ({settings.rate_limit_per_minute} req/min)"
