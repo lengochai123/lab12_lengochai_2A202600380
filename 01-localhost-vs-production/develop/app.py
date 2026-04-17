@@ -1,54 +1,80 @@
 """
-❌ BASIC — Agent "Kiểu Localhost" (Anti-patterns)
+✅ FIXED — Agent "Production-Ready" (Best Practices)
 
-Đây là cách KHÔNG NÊN làm. Dùng để so sánh với advanced/.
-Hãy đếm bao nhiêu vấn đề bạn tìm được trong file này.
+Đã sửa tất cả 5 vấn đề anti-pattern:
+  1. Không hardcode secrets — dùng biến môi trường (os.getenv)
+  2. Có config management rõ ràng với giá trị mặc định an toàn
+  3. Dùng logging module chuẩn thay vì print()
+  4. Có /health endpoint để platform biết app còn sống
+  5. Host/port đọc từ env var → deploy lên cloud được ngay
 """
+import logging
 import os
 
-from fastapi import FastAPI
 import uvicorn
+from fastapi import FastAPI
 from utils.mock_llm import ask
 
-app = FastAPI(title="My Agent")
+# ✅ Fix 3: Cấu hình logging chuẩn — không dùng print()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+)
+logger = logging.getLogger(__name__)
 
-# ❌ Vấn đề 1: API key hardcode trong code
-# Nếu push lên GitHub → key bị lộ ngay lập tức
-OPENAI_API_KEY = "sk-hardcoded-fake-key-never-do-this"
-DATABASE_URL = "postgresql://admin:password123@localhost:5432/mydb"
+# ✅ Fix 1: Đọc secrets từ biến môi trường — KHÔNG bao giờ hardcode
+OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+DATABASE_URL: str = os.getenv("DATABASE_URL", "")
 
-# ❌ Vấn đề 2: Không có config management
-DEBUG = True
-MAX_TOKENS = 500
+if not OPENAI_API_KEY:
+    logger.warning("OPENAI_API_KEY chưa được đặt trong environment variables!")
+if not DATABASE_URL:
+    logger.warning("DATABASE_URL chưa được đặt trong environment variables!")
+
+# ✅ Fix 2: Config management tập trung, có giá trị mặc định hợp lý
+DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "500"))
+
+app = FastAPI(
+    title="My Agent",
+    debug=DEBUG,
+)
 
 
 @app.get("/")
 def home():
-    return {"message": "Hello! Agent is running on my machine :)"}
+    return {"message": "Hello! Agent is running.", "status": "ok"}
+
+
+# ✅ Fix 4: Health check endpoint — giúp platform (Railway/Render/K8s) tự restart khi crash
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
 
 
 @app.post("/ask")
 def ask_agent(question: str):
-    # ❌ Vấn đề 3: Print thay vì proper logging
-    print(f"[DEBUG] Got question: {question}")
-    print(f"[DEBUG] Using key: {OPENAI_API_KEY}")  # ❌ log ra secret!
+    # ✅ Fix 3: Dùng logger thay vì print() — KHÔNG log secret ra ngoài
+    logger.info("Received question (length=%d chars)", len(question))
 
     response = ask(question)
 
-    print(f"[DEBUG] Response: {response}")
+    logger.info("Response generated successfully")
     return {"answer": response}
 
 
-# ❌ Vấn đề 4: Không có health check endpoint
-# Nếu agent crash, platform không biết để restart
-
-# ❌ Vấn đề 5: Port cố định — không đọc từ environment
-# Trên Railway/Render, PORT được inject qua env var
+# ✅ Fix 5: Đọc host/port từ env var → tương thích với mọi cloud platform
 if __name__ == "__main__":
-    print("Starting agent on localhost:8000...")
+    host: str = os.getenv("HOST", "0.0.0.0")   # 0.0.0.0 → lắng nghe mọi interface
+    port: int = int(os.getenv("PORT", "8000"))  # Railway/Render inject PORT tự động
+    reload: bool = os.getenv("RELOAD", "false").lower() == "true"  # Tắt reload trong prod
+
+    logger.info("Starting agent on %s:%d (reload=%s)", host, port, reload)
+    # Truyền object app trực tiếp (không dùng string "app:app") khi reload=False
+    # để tránh xung đột asyncio event loop trên Windows Python 3.12+
     uvicorn.run(
-        "app:app",
-        host="localhost",   # ❌ chỉ chạy được trên local
-        port=8000,          # ❌ cứng port
-        reload=True         # ❌ debug reload trong production
+        app,        # ✅ object thay vì string — an toàn trên Windows/Python 3.13
+        host=host,
+        port=port,
+        reload=reload,
     )
