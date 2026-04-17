@@ -18,16 +18,18 @@ logger = logging.getLogger(__name__)
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-async def verify_api_key(api_key: Optional[str] = Security(api_key_header), configured_key: str = None) -> bool:
+async def verify_api_key(api_key: Optional[str] = Security(api_key_header)) -> str:
     """
-    Verify API key from header
+    Verify API key from X-API-Key header against AGENT_API_KEY in settings.
 
     Returns:
-        True if valid
+        The validated API key string
 
     Raises:
         HTTPException 401 if missing or invalid
     """
+    from app.config import settings  # local import to avoid circular deps
+
     if not api_key:
         raise HTTPException(
             status_code=401,
@@ -35,7 +37,7 @@ async def verify_api_key(api_key: Optional[str] = Security(api_key_header), conf
             headers={"WWW-Authenticate": "ApiKey"},
         )
 
-    if api_key != configured_key:
+    if api_key != settings.agent_api_key:
         logger.warning("Invalid API key attempt")
         raise HTTPException(
             status_code=401,
@@ -44,7 +46,7 @@ async def verify_api_key(api_key: Optional[str] = Security(api_key_header), conf
         )
 
     logger.debug("API Key verified")
-    return True
+    return api_key
 
 
 def create_jwt_token(
